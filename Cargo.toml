@@ -1,0 +1,10 @@
+[package]
+name = "mb108"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.mb108-sys]
+path = "mb108-sys"
+version = "^0.1.0"
+
+[dependencies]

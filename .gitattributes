@@ -1,0 +1,2 @@
+mb108-sys/mb/**/*.dll filter=lfs diff=lfs merge=lfs -text
+mb108-sys/mb/**/*.so filter=lfs diff=lfs merge=lfs -text

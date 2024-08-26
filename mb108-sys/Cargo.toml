@@ -1,0 +1,23 @@
+[package]
+name = "mb108-sys"
+version = "0.1.0"
+edition = "2021"
+description = "Raw mb108 bindings for Rust, used internally mb108"
+repository = "https://github.com/blackknifes/rust-mb108"
+authors = ["bknife"]
+keywords = ["mb108", "miniblink", "windowing", "ffi", "browser"]
+categories = ["rendering","external-ffi-bindings"]
+license = "MIT"
+links = "mb108"
+build = "build.rs"
+
+[lib]
+name = "mb108_sys"
+path = "src/lib.rs"
+
+[dependencies]
+libc = "^0.2"
+
+[build-dependencies]
+bindgen = "^0.70"
+cc = "1.1.14"
