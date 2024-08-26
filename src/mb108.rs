@@ -1,5 +1,6 @@
 pub mod common;
 pub mod javascript;
+pub mod webframe;
 pub mod webview;
 
 use crate::error::{Error, Result};
@@ -7,7 +8,7 @@ use mb108_sys::{
     _mbSettingMask_MB_ENABLE_DISABLE_CC, _mbSettingMask_MB_ENABLE_DISABLE_H5VIDEO,
     _mbSettingMask_MB_ENABLE_DISABLE_PDFVIEW, _mbSettingMask_MB_ENABLE_ENABLE_EGLGLES2,
     _mbSettingMask_MB_ENABLE_ENABLE_SWIFTSHAER, _mbSettingMask_MB_ENABLE_NODEJS,
-    _mbSettingMask_MB_SETTING_PROXY, kMbVersion, mbInit, mbProxy, mbProxyType,
+    _mbSettingMask_MB_SETTING_PROXY, kMbVersion, mbExitMessageLoop, mbInit, mbProxy, mbProxyType,
     mbProxyType_MB_PROXY_HTTP, mbProxyType_MB_PROXY_NONE, mbProxyType_MB_PROXY_SOCKS4,
     mbProxyType_MB_PROXY_SOCKS4A, mbProxyType_MB_PROXY_SOCKS5, mbProxyType_MB_PROXY_SOCKS5HOSTNAME,
     mbRunMessageLoop, mbSetMbMainDllPath, mbSettings, mbUninit,
@@ -190,5 +191,11 @@ pub fn uninit() {
 pub fn run() {
     unsafe {
         mbRunMessageLoop.unwrap()();
+    }
+}
+
+pub fn exit() {
+    unsafe {
+        mbExitMessageLoop.unwrap()();
     }
 }

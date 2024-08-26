@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use mb108_sys::BOOL;
-use std::ffi::CString;
+use std::ffi::{c_char, CStr, CString};
 
 pub(crate) unsafe fn to_cstr16_ptr(str: &str) -> Vec<u16> {
     let mut str_u16 = str.encode_utf16().collect::<Vec<u16>>();
@@ -10,6 +10,14 @@ pub(crate) unsafe fn to_cstr16_ptr(str: &str) -> Vec<u16> {
 
 pub(crate) unsafe fn to_cstr_ptr(str: &str) -> Result<*const i8> {
     return Ok(CString::new(str).map_err(|err| Error::other(err))?.as_ptr());
+}
+
+pub(crate) unsafe fn from_cstr_ptr(str: *const c_char) -> Result<String> {
+    let str = CStr::from_ptr(str)
+        .to_str()
+        .map_err(|err| Error::other(err))?
+        .to_owned();
+    Ok(str)
 }
 
 pub(crate) fn to_bool_int(value: bool) -> BOOL {

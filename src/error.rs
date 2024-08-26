@@ -1,6 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
     String(String),
+    TypeMismatch(String),
     Other(Box<dyn std::error::Error>),
 }
 
