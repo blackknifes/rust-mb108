@@ -1,3 +1,4 @@
+pub mod delegate;
 pub mod error;
 pub mod mb108;
 
@@ -33,8 +34,15 @@ mod tests {
     }
 
     // #[test]
-    // fn test_init() {
+    // fn test_post_task() {
     //     init();
+
+    //     mb108::post_task(mb108::thread::ThreadId::Main, || {
+    //         println!("测试");
+    //         Ok(())
+    //     });
+
+    //     run();
     // }
 
     #[test]

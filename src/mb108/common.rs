@@ -1,6 +1,5 @@
 use std::{
     any::TypeId,
-    ops::{Deref, DerefMut},
     sync::{Arc, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -131,13 +130,13 @@ impl<T: 'static> UserValue<T> {
     pub(crate) fn from_raw(ptr: *const UserValue<T>) -> Result<Arc<Self>> {
         unsafe {
             if ptr.is_null() {
-                return Err(Error::TypeMismatch("ptr is null".to_owned()));
+                return Err(Error::type_mismatch("ptr is null"));
             }
 
             let arc = Arc::from_raw(ptr);
             let typeid: TypeId = TypeId::of::<T>();
             if arc.typeid != typeid {
-                let err = Error::TypeMismatch(format!(
+                let err = Error::type_mismatch(format!(
                     "type {:?} is mismatch to {:?} of stored",
                     arc.typeid, typeid
                 ));

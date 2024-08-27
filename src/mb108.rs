@@ -1,19 +1,31 @@
 pub mod common;
 pub mod javascript;
+pub mod thread;
 pub mod webframe;
 pub mod webview;
 
+use self::thread::ThreadId;
 use crate::error::{Error, Result};
+use lazy_static::lazy_static;
 use mb108_sys::{
     _mbSettingMask_MB_ENABLE_DISABLE_CC, _mbSettingMask_MB_ENABLE_DISABLE_H5VIDEO,
     _mbSettingMask_MB_ENABLE_DISABLE_PDFVIEW, _mbSettingMask_MB_ENABLE_ENABLE_EGLGLES2,
     _mbSettingMask_MB_ENABLE_ENABLE_SWIFTSHAER, _mbSettingMask_MB_ENABLE_NODEJS,
-    _mbSettingMask_MB_SETTING_PROXY, kMbVersion, mbExitMessageLoop, mbInit, mbProxy, mbProxyType,
-    mbProxyType_MB_PROXY_HTTP, mbProxyType_MB_PROXY_NONE, mbProxyType_MB_PROXY_SOCKS4,
-    mbProxyType_MB_PROXY_SOCKS4A, mbProxyType_MB_PROXY_SOCKS5, mbProxyType_MB_PROXY_SOCKS5HOSTNAME,
-    mbRunMessageLoop, mbSetMbMainDllPath, mbSettings, mbUninit,
+    _mbSettingMask_MB_SETTING_PROXY, kMbVersion, mbExitMessageLoop, mbInit, mbOnThreadIdle,
+    mbProxy, mbProxyType, mbProxyType_MB_PROXY_HTTP, mbProxyType_MB_PROXY_NONE,
+    mbProxyType_MB_PROXY_SOCKS4, mbProxyType_MB_PROXY_SOCKS4A, mbProxyType_MB_PROXY_SOCKS5,
+    mbProxyType_MB_PROXY_SOCKS5HOSTNAME, mbRunMessageLoop, mbSetMbMainDllPath, mbSettings,
+    mbUninit,
 };
 use std::ptr::{null, null_mut};
+use thread::ThreadRunner;
+
+lazy_static! {
+    pub static ref MAIN_THREAD_RUNNER: ThreadRunner = ThreadRunner::new(thread::ThreadId::Main);
+    pub static ref UI_THREAD_RUNNER: ThreadRunner = ThreadRunner::new(thread::ThreadId::UI);
+    pub static ref JAVASCRIPT_THREAD_RUNNER: ThreadRunner =
+        ThreadRunner::new(thread::ThreadId::Javascript);
+}
 
 ///代理设置
 pub struct ProxyOptions {
@@ -35,7 +47,7 @@ fn encode_to_buf(str: &str, buf: &mut [i8]) -> Result<()> {
         let ch_size = ch.encode_utf8(&mut ch_buf).len();
         for i in 0..ch_size {
             if index >= buf.len() - 1 {
-                return Err(Error::new(""));
+                return Err(Error::msg(""));
             }
 
             buf[index] = ch_buf[i] as i8;
@@ -132,6 +144,15 @@ pub struct Settings {
     pub enable_enable_swiftshaer: bool,
 }
 
+extern "C" fn on_main_thread_idle(
+    _param1: *mut ::std::os::raw::c_void,
+    _param2: *mut ::std::os::raw::c_void,
+) {
+    loop {
+        MAIN_THREAD_RUNNER.run_once();
+    }
+}
+
 ///初始化miniblink
 pub fn init(dll: &str, settings: Option<Settings>) -> Result<()> {
     unsafe {
@@ -178,6 +199,9 @@ pub fn init(dll: &str, settings: Option<Settings>) -> Result<()> {
             config: null(),
         };
         mbInit(&settings_struct);
+
+        mbOnThreadIdle.unwrap()(Some(on_main_thread_idle), null_mut(), null_mut());
+
         return Ok(());
     }
 }
@@ -197,5 +221,16 @@ pub fn run() {
 pub fn exit() {
     unsafe {
         mbExitMessageLoop.unwrap()();
+    }
+}
+
+pub fn post_task<FN>(thread: ThreadId, func: FN)
+where
+    FN: FnOnce() -> Result<()> + 'static + Send,
+{
+    match thread {
+        ThreadId::Main => MAIN_THREAD_RUNNER.post_task(func),
+        ThreadId::UI => UI_THREAD_RUNNER.post_task(func),
+        ThreadId::Javascript => JAVASCRIPT_THREAD_RUNNER.post_task(func),
     }
 }
