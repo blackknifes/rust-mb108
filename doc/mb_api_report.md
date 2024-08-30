@@ -16,7 +16,7 @@
 | mbSetAudioMuted | × |
 | mbIsAudioMuted | × |
 | mbCreateString | √ |
-| mbCreateStringWithout×Termination | × |
+| mbCreateStringWithoutNullTermination | × |
 | mbDeleteString | √ |
 | mbGetStringLen | √ |
 | mbGetString | √ |
