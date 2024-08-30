@@ -7,6 +7,6 @@
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
         "target": true,
-        "mb108-sys": true,
+        "mb108-sys/target": true,
     }
 }

@@ -3,9 +3,13 @@ pub mod javascript;
 pub mod thread;
 pub mod webframe;
 pub mod webview;
+pub use mb108_main::main;
 
 use self::thread::ThreadId;
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    utils::from_cstr_ptr,
+};
 use lazy_static::lazy_static;
 use mb108_sys::{
     _mbSettingMask_MB_ENABLE_DISABLE_CC, _mbSettingMask_MB_ENABLE_DISABLE_H5VIDEO,
@@ -15,17 +19,9 @@ use mb108_sys::{
     mbProxy, mbProxyType, mbProxyType_MB_PROXY_HTTP, mbProxyType_MB_PROXY_NONE,
     mbProxyType_MB_PROXY_SOCKS4, mbProxyType_MB_PROXY_SOCKS4A, mbProxyType_MB_PROXY_SOCKS5,
     mbProxyType_MB_PROXY_SOCKS5HOSTNAME, mbRunMessageLoop, mbSetMbMainDllPath, mbSettings,
-    mbUninit,
+    mbUninit, mbWake, win32ExitLoop, win32RunLoopOnce,
 };
 use std::ptr::{null, null_mut};
-use thread::ThreadRunner;
-
-lazy_static! {
-    pub static ref MAIN_THREAD_RUNNER: ThreadRunner = ThreadRunner::new(thread::ThreadId::Main);
-    pub static ref UI_THREAD_RUNNER: ThreadRunner = ThreadRunner::new(thread::ThreadId::UI);
-    pub static ref JAVASCRIPT_THREAD_RUNNER: ThreadRunner =
-        ThreadRunner::new(thread::ThreadId::Javascript);
-}
 
 ///代理设置
 pub struct ProxyOptions {
@@ -143,16 +139,6 @@ pub struct Settings {
     pub enable_enable_eglgles2: bool,
     pub enable_enable_swiftshaer: bool,
 }
-
-extern "C" fn on_main_thread_idle(
-    _param1: *mut ::std::os::raw::c_void,
-    _param2: *mut ::std::os::raw::c_void,
-) {
-    loop {
-        MAIN_THREAD_RUNNER.run_once();
-    }
-}
-
 ///初始化miniblink
 pub fn init(dll: &str, settings: Option<Settings>) -> Result<()> {
     unsafe {
@@ -200,8 +186,6 @@ pub fn init(dll: &str, settings: Option<Settings>) -> Result<()> {
         };
         mbInit(&settings_struct);
 
-        mbOnThreadIdle.unwrap()(Some(on_main_thread_idle), null_mut(), null_mut());
-
         return Ok(());
     }
 }
@@ -220,17 +204,29 @@ pub fn run() {
 
 pub fn exit() {
     unsafe {
-        mbExitMessageLoop.unwrap()();
+        win32ExitLoop();
     }
 }
 
-pub fn post_task<FN>(thread: ThreadId, func: FN)
-where
-    FN: FnOnce() -> Result<()> + 'static + Send,
-{
-    match thread {
-        ThreadId::Main => MAIN_THREAD_RUNNER.post_task(func),
-        ThreadId::UI => UI_THREAD_RUNNER.post_task(func),
-        ThreadId::Javascript => JAVASCRIPT_THREAD_RUNNER.post_task(func),
+pub enum RunOnceFlag {
+    Idle,
+    RunOnce,
+    Exit,
+}
+
+pub fn run_once() -> RunOnceFlag {
+    unsafe {
+        let result = win32RunLoopOnce();
+        match result {
+            1 => RunOnceFlag::RunOnce,
+            0 => {
+                mbWake.unwrap()(0);
+                RunOnceFlag::Idle
+            }
+            _ => {
+                mbExitMessageLoop.unwrap()();
+                RunOnceFlag::Exit
+            }
+        }
     }
 }

@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use mb108_sys::BOOL;
+use mb108_sys::{mbFreeMemBuf, mbMemBuf, BOOL};
 use std::ffi::{c_char, CStr, CString};
 
 pub(crate) unsafe fn to_cstr16_ptr(str: &str) -> Vec<u16> {
@@ -8,8 +8,17 @@ pub(crate) unsafe fn to_cstr16_ptr(str: &str) -> Vec<u16> {
     return str_u16;
 }
 
-pub(crate) unsafe fn to_cstr_ptr(str: &str) -> Result<*const i8> {
-    return Ok(CString::new(str).map_err(|err| Error::other(err))?.as_ptr());
+pub(crate) struct Utf8(CString);
+
+impl Utf8 {
+    pub(crate) fn to_utf8(&self) -> *const c_char {
+        self.0.as_c_str().as_ptr()
+    }
+}
+
+pub(crate) unsafe fn to_cstr_ptr(str: &str) -> Result<Utf8> {
+    let cstr = CString::new(str).map_err(Error::other)?;
+    Ok(Utf8(cstr))
 }
 
 pub(crate) unsafe fn from_cstr_ptr(str: *const c_char) -> Result<String> {
@@ -20,6 +29,7 @@ pub(crate) unsafe fn from_cstr_ptr(str: *const c_char) -> Result<String> {
     Ok(str)
 }
 
+#[allow(dead_code)]
 pub(crate) fn to_bool_int(value: bool) -> BOOL {
     if value {
         1
@@ -33,5 +43,14 @@ pub(crate) fn from_bool_int(value: BOOL) -> bool {
         false
     } else {
         true
+    }
+}
+
+pub(crate) fn from_mem(mem: *mut mbMemBuf) -> Vec<u8> {
+    unsafe {
+        let info = mem.read();
+        let data = Vec::from_raw_parts(info.data as *mut u8, info.length, info.length);
+        mbFreeMemBuf.unwrap()(mem);
+        data
     }
 }

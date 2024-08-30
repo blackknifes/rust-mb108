@@ -1,13 +1,11 @@
-use super::{
-    common::Size,
-    javascript::{ExecState, JsValue},
-};
 use crate::error::Result;
 use crate::utils::{from_bool_int, to_bool_int, to_cstr_ptr};
 use mb108_sys::{
     mbGetGlobalExecByFrame, mbInsertCSSByFrame, mbIsMainFrame, mbPrintSettings, mbUtilPrint,
     mbUtilsSilentPrint, mbWebFrameHandle, mbWebView,
 };
+
+use super::javascript::{ExecState, JsValue};
 
 #[derive(Clone, Copy)]
 pub struct PrintSettings {
@@ -112,7 +110,7 @@ impl WebFrame {
 
     pub fn insert_css_by_frame(&self, css: &str) -> Result<()> {
         unsafe {
-            mbInsertCSSByFrame.unwrap()(self.webview, self.frame, to_cstr_ptr(css)?);
+            mbInsertCSSByFrame.unwrap()(self.webview, self.frame, to_cstr_ptr(css)?.to_utf8());
             Ok(())
         }
     }

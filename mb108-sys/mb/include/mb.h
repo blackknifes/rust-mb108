@@ -1209,6 +1209,10 @@ void mbInit(const mbSettings* settings)
     return;
 }
 
+void win32RunLoop();
+int win32RunLoopOnce();
+void win32ExitLoop();
+
 #else // defined(WIN32)
 
 void mbInit(const mbSettings* settings)
@@ -1226,7 +1230,7 @@ void mbInit(const mbSettings* settings)
 
 }
 
-#endif // defined(WIN32)
+#endif // defined(WIN32)    
 
 #endif // ENABLE_MB
 
